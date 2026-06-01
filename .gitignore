@@ -1,0 +1,23 @@
+# Compiled output
+telemetry
+src/*.o
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+article_localhost.pdf
+
+# Results (generated at runtime)
+results/*.csv
+results/*.png
+results/*.pdf
+
+# Editor
+.vscode/
+*.swp
+*~

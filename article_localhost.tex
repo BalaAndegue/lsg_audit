@@ -53,25 +53,27 @@ Email : balaandeguefrancoislionnel@gmail.com}
 
 % =========================================================================
 \begin{abstract}
-L'exposition de serveurs de développement sur un réseau local (LAN)
-via une configuration d'écoute permissive (\texttt{0.0.0.0}) constitue
-un vecteur d'attaque systématiquement sous-estimé dans les environnements
-institutionnels. Cet article formalise la notion de \textit{Localhost
-Security Gap} (LSG) distant et propose un cadre mathématique pour
-l'isoler et le quantifier à distance. Nous présentons un framework
-d'évaluation en espace utilisateur, développé en C++ avec la bibliothèque
-\texttt{libcurl}, qui exploite la décomposition du temps de cycle HTTP
-afin d'isoler le temps de traitement applicatif pur
-($T_{\mathrm{calcul}}$) de la gigue réseau ($\varepsilon$). Un mécanisme
-de double sonde (\textit{Dual-Probe Verification}) permet de confirmer
-statistiquement toute dégradation détectée. Les expériences menées sur
-un banc physique LAN (IEEE~802.3) avec quatre serveurs de développement
-représentatifs (Node.js, Express, PHP intégré, Python \texttt{http.server})
-démontrent que la télémétrie passive permet de discriminer le profil de
-charge computationnelle de chaque serveur et de détecter des états de
-saturation avec un z-score $|z| > 3$ ($p < 0{,}001$). Ces résultats
-constituent une base rigoureuse pour la sensibilisation au durcissement
-des configurations en environnement académique et institutionnel.
+L'exposition non intentionnelle de serveurs de développement sur un
+réseau local (LAN) via une liaison \texttt{0.0.0.0} constitue un vecteur
+d'attaque systématiquement sous-estimé dans les environnements
+académiques et institutionnels. Cet article formalise le concept de
+\textit{Localhost Security Gap} (LSG) distant et propose un modèle
+mathématique pour isoler le temps de traitement applicatif pur
+($\hat{T}_{\mathrm{calcul}}$) de la gigue réseau ($\varepsilon$) à
+partir des seuls compteurs internes de la bibliothèque \texttt{libcurl}.
+Un estimateur robuste fondé sur le filtre IQR de Tukey, un test z de
+Welch et un mécanisme de vérification par double sonde (\textit{Dual-Probe})
+permettent de détecter et de classer les dégradations applicatives avec
+un seuil de confiance de $99{,}9\%$. Les expériences menées sur un banc
+physique LAN Wi-Fi avec une application Next.js~14 (Turbopack) exposée
+sur \texttt{0.0.0.0:3000} démontrent~: (i)~une dégradation statistiquement
+significative de $\Delta T = 29{,}58$~ms ($z = 6{,}26$, $p < 0{,}001$)
+sous charge mixte~; (ii)~un seuil de saturation identifié à $C = 50$
+requêtes simultanées avec 46\% d'échecs. Ces résultats quantifient
+rigoureusement la résilience des serveurs de développement exposés et
+fournissent des arguments concrets en faveur du durcissement des
+configurations en environnement institutionnel. Le code source du
+framework est disponible en accès libre.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -163,11 +165,13 @@ serveur Next.js est accessible depuis toute machine du LAN
 
 Le reste de l'article est organisé comme suit~: la
 Section~\ref{sec:etat_art} présente les travaux connexes~;
+la Section~\ref{sec:threat_model} définit le modèle de menace~;
 la Section~\ref{sec:modelisation} développe le modèle mathématique~;
 la Section~\ref{sec:architecture} décrit l'architecture du framework~;
 la Section~\ref{sec:resultats} présente et analyse les résultats
-expérimentaux~; la Section~\ref{sec:ethique} traite des aspects
-éthiques~; la Section~\ref{sec:conclusion} conclut.
+expérimentaux~; la Section~\ref{sec:limites} énonce les limites~;
+la Section~\ref{sec:ethique} traite des aspects éthiques~;
+la Section~\ref{sec:conclusion} conclut.
 
 % =========================================================================
 \section{État de l'Art et Travaux Connexes}
@@ -207,6 +211,51 @@ La problématique de l'exposition non intentionnelle de services sur
 Barth et al.~\cite{barth2008robust}, qui identifient des vecteurs
 d'attaque par rebond (\textit{DNS rebinding}) exploitant précisément
 cette confusion entre liaison locale et liaison générique.
+
+% =========================================================================
+\section{Modèle de Menace}
+\label{sec:threat_model}
+% =========================================================================
+
+Une modélisation rigoureuse des hypothèses sur l'attaquant est
+nécessaire pour délimiter la portée et les limites de notre méthode.
+
+\subsection{Actifs et surface d'exposition}
+L'\textit{actif} considéré est un service HTTP de développement lié à
+\texttt{0.0.0.0} sur un port non standard ($p \in \{3000, 5000, \ldots\}$)
+sur la machine cible $B$. L'exposition à l'ensemble du segment LAN
+constitue la surface d'attaque~: tout hôte du même sous-réseau peut
+atteindre le service sans authentification, sans chiffrement TLS, et
+sans limitation de débit.
+
+\subsection{Profil de l'attaquant}
+Nous modélisons un attaquant \textit{passif en lecture} disposant des
+capacités suivantes~:
+\begin{itemize}
+    \item \textbf{Présence LAN~:} l'attaquant est connecté au même
+      segment réseau de couche 2 que la cible (Wi-Fi institutionnel,
+      réseau de campus, etc.).
+    \item \textbf{Émission HTTP~:} l'attaquant peut émettre des requêtes
+      HTTP GET et POST standards depuis l'espace utilisateur, sans
+      privilèges noyau ni accès à des sockets bruts.
+    \item \textbf{Mesure temporelle~:} l'attaquant mesure les délais de
+      réponse avec une précision milliseconde via une horloge monotone
+      logicielle.
+\end{itemize}
+
+\subsection{Objectifs et hors-périmètre}
+L'attaquant cherche à~: (a)~\textit{caractériser} la technologie
+serveur à partir de son profil de latence~; (b)~\textit{détecter}
+l'état de vulnérabilité du service (absence de durcissement)~;
+(c)~\textit{provoquer} une interruption de service partielle par
+saturation de concurrence. Ce modèle exclut explicitement~:
+l'exploitation de vulnérabilités applicatives, l'exfiltration de
+données, les attaques de couche réseau (ARP poisoning, etc.) et
+toute action nécessitant des privilèges système.
+
+Ce profil correspond à la situation réelle dans les environnements
+académiques~: un étudiant malveillant ou un acteur sur le même réseau
+Wi-Fi institutionnel peut mener ces opérations sans outil spécialisé.
 
 % =========================================================================
 \section{Modélisation Mathématique de la Télémétrie}
@@ -608,6 +657,59 @@ produirait un $d$ bien supérieur à $0{,}8$ (effet large) grâce à la
 réduction drastique de $\hat{\sigma}$.
 
 % =========================================================================
+\section{Limites et Perspectives de Généralisation}
+\label{sec:limites}
+% =========================================================================
+
+L'honnêteté scientifique exige de délimiter explicitement ce que les
+résultats présentés permettent et ne permettent pas de conclure.
+
+\subsection{Portée expérimentale actuelle}
+Les données quantitatives de cet article reposent sur une unique
+application cible (Next.js~14 Turbopack) sur une liaison Wi-Fi. Bien
+que le z-score ($z = 6{,}26$) soit hautement significatif, l'effet
+mesuré reste limité en amplitude ($d = 0{,}48$, effet moyen) du fait
+de la gigue Wi-Fi ($\hat{\sigma} = 29$~ms). Sur une liaison Ethernet
+filaire ($\hat{\sigma} < 1$~ms), le même $\Delta T$ produirait un $d$
+supérieur à $0{,}8$ (effet large). Des expériences complémentaires sur
+Ethernet et sur des serveurs à modèle de concurrence différent
+(Python mono-thread, PHP built-in) sont nécessaires pour généraliser
+les conclusions.
+
+\subsection{Dépendance à la stabilité du réseau}
+Le modèle suppose $\varepsilon \sim \mathcal{N}(0, \sigma^2)$. Cette
+hypothèse est raisonnable sur un LAN câblé peu chargé, mais peut être
+violée sur un réseau Wi-Fi partagé soumis à des rafales de trafic.
+Dans ce cas, le filtre IQR atténue l'effet des pics, mais ne le
+supprime pas entièrement.
+
+\subsection{Dual-probe et endpoints inconnus}
+Le mécanisme de double sonde suppose l'existence d'un endpoint
+computationnel connu (\texttt{/api/compute}). En contexte de boîte
+noire complète, si aucun endpoint lourd n'est identifiable, la
+classification applicative/réseau repose uniquement sur le z-score,
+sans confirmation par ratio $r$.
+
+\subsection{Absence de comparaison avec l'état de l'art}
+Ce travail n'établit pas de comparaison directe avec des outils
+existants (Nmap, Nikto, OWASP ZAP). Une telle comparaison constitue
+un axe de travail futur prioritaire pour quantifier l'apport spécifique
+de la télémétrie différentielle par rapport aux approches d'audit
+conventionnelles.
+
+\subsection{Déclaration de reproductibilité}
+L'ensemble du code source du framework d'audit, des serveurs cibles et
+des scripts d'analyse est disponible en accès libre sous licence MIT~:
+
+\begin{center}
+\url{https://github.com/BalaAndegue/lsg_audit}
+\end{center}
+
+Les données brutes des expériences (fichiers CSV) sont incluses dans
+le dépôt. Toute expérience décrite dans cet article peut être reproduite
+en suivant les instructions du fichier \texttt{README.md}.
+
+% =========================================================================
 \section{Considérations Éthiques et Périmètre d'Usage}
 \label{sec:ethique}
 % =========================================================================
@@ -665,10 +767,18 @@ le recours à des configurations d'écoute restrictives
 (\texttt{127.0.0.1}) et l'utilisation d'un reverse proxy de
 développement même en phase de test.
 
-Les travaux futurs porteront sur~: (1)~l'extension de la méthode à la
-détection d'empreintes comportementales permettant d'identifier
-automatiquement la technologie serveur~; (2)~la génération de politiques
-de durcissement automatisées à partir des profils de latence mesurés.
+Les travaux futurs s'articulent autour de quatre axes. \textbf{(1)}
+Validation multi-serveurs sur Ethernet~: reproduire les expériences sur
+les serveurs synthétiques (Python, Node.js, PHP) en liaison filaire
+pour quantifier proprement les empreintes comportementales par
+technologie. \textbf{(2)} Analyse de sensibilité~: étudier la
+dépendance du z-score à $N$ (nombre de sondes de calibration) afin de
+déterminer le seuil minimal pour une détection fiable. \textbf{(3)}
+Mesure du taux de faux positifs~: valider empiriquement que $H_0$ est
+correctement conservée sur un serveur non dégradé. \textbf{(4)}
+Comparaison avec les outils d'audit existants (Nmap NSE, OWASP ZAP)
+pour positionner la contribution de la télémétrie différentielle par
+rapport à l'état de l'art opérationnel.
 
 % =========================================================================
 \begin{thebibliography}{10}

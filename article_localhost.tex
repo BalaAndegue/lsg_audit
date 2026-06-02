@@ -119,51 +119,45 @@ Les \textbf{contributions principales} de cet article sont les suivantes~:
   (z-score de Welch, effect size de Cohen).
 \end{enumerate}
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
-\begin{tikzpicture}[
-    machine/.style={draw, rounded corners=4pt, minimum width=2.5cm,
-                    minimum height=1.6cm, align=center, font=\small,
-                    thick},
+\begin{tikzpicture}[scale=0.78, transform shape,
+    machine/.style={draw, rounded corners=4pt, minimum width=2.4cm,
+                    minimum height=1.5cm, align=center, font=\small, thick},
     arr/.style={-{Stealth[length=5pt]}, thick},
     lbl/.style={font=\scriptsize},
     warn/.style={draw=red!60, fill=red!8, rounded corners=2pt,
-                 font=\scriptsize, inner sep=3pt},
+                 font=\scriptsize, inner sep=2.5pt},
     good/.style={draw=green!60!black, fill=green!8, rounded corners=2pt,
-                 font=\scriptsize, inner sep=3pt}
+                 font=\scriptsize, inner sep=2.5pt}
 ]
-  % Machine A
   \node[machine, fill=blue!6] (A) at (0,0)
     {\textbf{Machine A}\\[2pt]\scriptsize Audit\\192.168.1.x};
 
-  % Machine B
-  \node[machine, fill=orange!6] (B) at (6,0)
-    {\textbf{Machine B}\\[2pt]\scriptsize Serveur dev\\Next.js 14};
+  \node[machine, fill=orange!6] (B) at (5.2,0)
+    {\textbf{Machine B}\\[2pt]\scriptsize Serveur dev\\Next.js~14};
 
-  % WiFi link
-  \draw[arr, double, double distance=1.5pt, gray!60] (A.east) --
-    node[above, lbl]{Wi-Fi 802.11 \ ($\bar{T}=195$~ms)}
+  \draw[arr, double, double distance=1.5pt, gray!55] (A.east) --
+    node[above, lbl]{Wi-Fi 802.11 ($\bar{T}=195$~ms)}
     node[below, lbl]{requêtes HTTP / métriques TTFB}
     (B.west);
 
-  % Binding modes on B
-  \node[warn, below=0.4cm of B, xshift=-0.2cm]
-    (bad) {\texttt{0.0.0.0:3000} \textbf{(LSG)}};
-  \node[good, below=0.9cm of B, xshift=-0.2cm]
-    {\texttt{127.0.0.1:3000} \checkmark};
+  \node[warn, below=0.35cm of B] (bad)
+    {\texttt{0.0.0.0:3000} \textbf{(LSG)}};
+  \node[good, below=0.85cm of B]
+    {\texttt{127.0.0.1:3000}~\checkmark};
 
-  % Red arrow showing LAN access
-  \draw[arr, red!70, bend right=20, dashed]
+  \draw[arr, red!65, bend right=18, dashed]
     (A.south east) to
-    node[below, lbl, red!70, pos=0.55]{accessible depuis le LAN}
+    node[below, lbl, red!65, pos=0.52]{exposé au LAN entier}
     (bad.west);
 
-  % Lock icon for good config
-  \node[lbl, gray] at ($(B.south)+(0,-1.55)$) {\textit{(config.\ sécurisée)}};
+  \node[lbl, gray, below=1.35cm of B]
+    {\textit{(config.\ sécurisée)}};
 \end{tikzpicture}
-\caption{Topologie du banc d'essai. Un service lié à \texttt{0.0.0.0}
-est accessible depuis toutes les interfaces du LAN (\textit{Localhost
-Security Gap}), contrairement à \texttt{127.0.0.1}.}
+\caption{Topologie du banc d'essai. Lié à \texttt{0.0.0.0}, le
+serveur Next.js est accessible depuis toute machine du LAN
+(\textit{Localhost Security Gap}).}
 \label{fig:topology}
 \end{figure}
 
@@ -258,58 +252,46 @@ phase pendant laquelle le serveur traite la requête avant d'envoyer
 le premier octet de réponse. La Figure~\ref{fig:rtt} illustre cette
 décomposition sur un axe temporel.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
-\begin{tikzpicture}[
+\begin{tikzpicture}[scale=0.80, transform shape,
     >=Stealth,
-    evt/.style={circle, fill=black, inner sep=1.8pt},
+    evt/.style={circle, fill=black, inner sep=1.6pt},
     lbl/.style={font=\scriptsize},
-    brace/.style={decorate,
-                  decoration={brace, amplitude=5pt, raise=2pt}}
+    brace/.style={decorate, decoration={brace, amplitude=4pt, raise=2pt}}
 ]
-  % Time axis
-  \draw[->, thick] (-0.4,0) -- (8.8,0) node[right, lbl]{temps};
+  \draw[->, thick] (-0.3,0) -- (7.6,0) node[right, lbl]{temps};
 
-  % Key events
-  \coordinate (t0)  at (0.0, 0);
-  \coordinate (tc)  at (2.8, 0);
-  \coordinate (ts)  at (5.6, 0);
-  \coordinate (tend)at (8.0, 0);
+  \coordinate (t0)   at (0.0, 0);
+  \coordinate (tc)   at (2.2, 0);
+  \coordinate (ts)   at (4.4, 0);
+  \coordinate (tend) at (6.8, 0);
 
-  \node[evt] at (t0)  {};
-  \node[evt] at (tc)  {};
-  \node[evt] at (ts)  {};
+  \node[evt] at (t0) {};
+  \node[evt] at (tc) {};
+  \node[evt] at (ts) {};
 
-  % Labels below axis
-  \node[lbl, below=0.18cm] at (t0)  {$t_0$\\SYN};
-  \node[lbl, below=0.18cm] at (tc)  {$t_\mathrm{connect}$\\TCP~ACK};
-  \node[lbl, below=0.18cm] at (ts)  {$t_\mathrm{TTFB}$\\1\textsuperscript{er}~octet};
+  \node[lbl, below=0.15cm] at (t0) {$t_0$\\SYN};
+  \node[lbl, below=0.15cm] at (tc) {$t_\mathrm{connect}$\\TCP ACK};
+  \node[lbl, below=0.15cm] at (ts) {$t_\mathrm{TTFB}$\\1\textsuperscript{er} octet};
 
-  % Braces above axis
-  \draw[brace, blue!65]  (t0)  -- (tc)
-    node[midway, above=8pt, lbl, blue!65]
-    {$T_\mathrm{r\acute{e}seau}$};
-  \draw[brace, red!70]   (tc)  -- (ts)
-    node[midway, above=8pt, lbl, red!70]
-    {$\hat{T}_\mathrm{calcul}$ \emph{(isolé)}};
-  \draw[brace, gray!55]  (ts)  -- (tend)
-    node[midway, above=8pt, lbl, gray!60]
-    {transfert \emph{(avorté)}};
+  \draw[brace, blue!65] (t0) -- (tc)
+    node[midway, above=7pt, lbl, blue!65]{$T_\mathrm{r\acute{e}seau}$};
+  \draw[brace, red!70]  (tc) -- (ts)
+    node[midway, above=7pt, lbl, red!70]{$\hat{T}_\mathrm{calcul}$ (isolé)};
+  \draw[brace, gray!50] (ts) -- (tend)
+    node[midway, above=7pt, lbl, gray!55]{transfert (avorté)};
 
-  % libcurl annotation arrows
-  \draw[->, dashed, blue!50, thin]
-    (1.4, -1.0) node[lbl, blue!60, left=1pt]
-      {\texttt{CURLINFO\_CONNECT\_TIME}}
-    -- (1.4, -0.08);
-  \draw[->, dashed, red!50, thin]
-    (4.2, -1.0) node[lbl, red!60, right=1pt]
-      {\texttt{CURLINFO\_STARTTRANSFER\_TIME}}
-    -- (4.2, -0.08);
+  \draw[->, dashed, blue!45, thin]
+    (1.1,-0.85) node[lbl, blue!55, left=1pt]{\texttt{CONNECT\_TIME}}
+    -- (1.1,-0.07);
+  \draw[->, dashed, red!45, thin]
+    (3.3,-0.85) node[lbl, red!55, right=1pt]{\texttt{STARTTRANSFER\_TIME}}
+    -- (3.3,-0.07);
 \end{tikzpicture}
-\caption{Décomposition temporelle du RTT via les compteurs internes de
-\texttt{libcurl}. Le callback d'écriture avorte le transfert du corps
-dès le premier octet~; $\hat{T}_\mathrm{calcul}$ est capturé avant
-cet abandon.}
+\caption{Décomposition du RTT via les compteurs \texttt{libcurl}.
+Le callback avorte le transfert au premier octet~;
+$\hat{T}_\mathrm{calcul}$ est enregistré avant cet abandon.}
 \label{fig:rtt}
 \end{figure}
 
@@ -534,62 +516,56 @@ $C$ & $\bar{T}_\mathrm{load}$ (ms) & P99 (ms) & Succès (\%) \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \begin{tikzpicture}
-\pgfplotsset{every axis/.style={
-    width=0.92\columnwidth, height=5.2cm,
-    enlarge x limits=0.25,
-    xtick={1,2,3,4},
-    xticklabels={$C{=}5$,$C{=}10$,$C{=}20$,$C{=}50$},
-    tick label style={font=\scriptsize},
-    label style={font=\scriptsize},
-}}
-
 % Left axis — latency bars
 \begin{axis}[
-    ybar, bar width=16pt,
+    name=ax1,
+    ybar, bar width=14pt,
+    width=\columnwidth, height=5.0cm,
+    enlarge x limits=0.22,
+    xtick={1,2,3,4},
+    xticklabels={$C{=}5$,$C{=}10$,$C{=}20$,$C{=}50$},
     ylabel={$\bar{T}_\mathrm{load}$ (ms)},
-    y label style={color=blue!70!black},
-    ymin=0, ymax=7200,
+    y label style={color=blue!65!black, font=\scriptsize},
+    ymin=0, ymax=7500,
+    ytick={0,1000,2000,3000,4000,5000,6000,7000},
+    ymajorgrids, grid style={dashed, gray!20},
     axis y line*=left,
     axis x line*=bottom,
-    ymajorgrids, grid style={dashed, gray!25},
-    ytick={0,1000,2000,3000,4000,5000,6000,7000},
-    name=ax1,
-]
-\addplot[fill=blue!25, draw=blue!60!black, thick] coordinates {
-    (1,5274)(2,965)(3,1000)(4,2007)
-};
-% Saturation zone
-\fill[red!8] (axis cs:3.5,0) rectangle (axis cs:4.5,7200);
-\draw[red!50, dashed, thin] (axis cs:3.5,0) -- (axis cs:3.5,7200)
-    node[pos=0.92, right, font=\scriptsize, red!70]{seuil};
-\end{axis}
-
-% Right axis — success rate line
-\begin{axis}[
-    at={(ax1.south east)}, anchor=south east,
-    width=0.92\columnwidth, height=5.2cm,
-    enlarge x limits=0.25,
-    xtick={1,2,3,4}, xticklabels={},
-    ylabel={Taux de succès (\%)},
-    y label style={color=red!70!black},
-    axis y line*=right,
-    axis x line*=none,
-    ymin=0, ymax=115,
     tick label style={font=\scriptsize},
     label style={font=\scriptsize},
 ]
-\addplot[red!70!black, thick, mark=*, mark size=2.8pt, dashed] coordinates {
+\addplot[fill=blue!22, draw=blue!55!black] coordinates {
+    (1,5274)(2,965)(3,1000)(4,2007)
+};
+\fill[red!7] (axis cs:3.48,0) rectangle (axis cs:4.52,7500);
+\draw[red!40, dashed, thin] (axis cs:3.48,0) -- (axis cs:3.48,7500)
+    node[pos=0.88, right, font=\tiny, red!60]{seuil};
+\end{axis}
+% Right axis — success rate (overlay)
+\begin{axis}[
+    width=\columnwidth, height=5.0cm,
+    enlarge x limits=0.22,
+    at={(ax1.south west)}, anchor=south west,
+    xtick={1,2,3,4}, xticklabels={,,,},
+    ylabel={Succès (\%)},
+    y label style={color=red!65!black, font=\scriptsize},
+    ymin=0, ymax=115,
+    axis y line*=right,
+    axis x line*=none,
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+]
+\addplot[red!65!black, thick, mark=*, mark size=2.5pt, dashed] coordinates {
     (1,100)(2,100)(3,100)(4,54)
 };
 \end{axis}
 \end{tikzpicture}
-\caption{Saturation du serveur Next.js dev. Barres bleues~:
-latence moyenne. Ligne rouge pointillée~: taux de succès.
-La zone ombrée indique l'effondrement à $C=50$ (54\% de succès,
-46\% d'échecs).}
+\caption{Courbe de saturation — Next.js dev (port~3000). Barres
+bleues~: latence moyenne. Ligne rouge~: taux de succès. Zone ombrée~:
+effondrement à $C=50$ (54\% de succès, 46\% d'échecs).}
 \label{fig:saturation}
 \end{figure}
 
